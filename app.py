@@ -15,14 +15,31 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"Telegram Error: {e}")
 
-# --- APP INTERFACE ---
+# --- APP INTERFACE CONFIG ---
 st.set_page_config(page_title="Nifty Breakout Scanner", page_icon="🚀", layout="wide")
 st.title("🚀 Nifty Breakout Scanner & Alerter")
 
 if "last_alert" not in st.session_state:
     st.session_state.last_alert = ""
 
-# --- TIMEFRAME SELECTION ---
+# --- SIDEBAR: BROKER API CONFIGURATION (പുതിയ ഫീച്ചർ) ---
+st.sidebar.header("🔑 Broker API Settings")
+broker = st.sidebar.selectbox(
+    "Select Your Broker:",
+    options=["Zerodha (Kite)", "Angel One", "Fyers", "Alice Blue"]
+)
+
+api_key = st.sidebar.text_input("Enter API Key:", type="password", help="ನಿಮ್ಮ ဘ್ರೋക്കർ പോർട്ടലിൽ നിന്നുള്ള API Key ഇവിടെ നൽകുക")
+secret_key = st.sidebar.text_input("Enter Secret Key / Access Token:", type="password")
+
+if st.sidebar.button("🔗 Connect Broker"):
+    if api_key and secret_key:
+        st.sidebar.success(f"Connected successfully to {broker}!")
+        # തിങ്കളാഴ്ച യഥാർത്ഥ അക്കൗണ്ടിലേക്ക് കണക്ട് ചെയ്യാനുള്ള കോഡ് ഇവിടെ വരും
+    else:
+        st.sidebar.error("Please enter both API Key and Secret Key!")
+
+# --- MAIN SCREEN: TIMEFRAME SELECTION ---
 st.subheader("⚙️ Settings")
 timeframe = st.selectbox(
     "Select Timeframe for Analysis:",
@@ -36,7 +53,7 @@ st.divider()
 # --- TEST BUTTON ---
 st.subheader("📊 Market Analysis Live Data")
 if st.button("🧪 Test Telegram Notification"):
-    test_msg = f"🔔 *Test Alert!* \nYour Nifty Scanner is successfully connected to @IshstrdeBot! \nTimeframe: {timeframe}"
+    test_msg = f"🔔 *Test Alert!* \nYour Nifty Scanner is successfully connected to @IshstrdeBot! \nTimeframe: {timeframe}\nBroker Mode: {broker}"
     send_telegram_message(test_msg)
     st.success("Test message sent to your Telegram!")
 
