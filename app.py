@@ -3,37 +3,65 @@ import pandas as pd
 import requests
 import time
 
-# ആപ്പ് സെറ്റിങ്സ്
-st.set_page_config(page_title="Nifty Breakout Scanner", page_icon="🚀", layout="centered")
-st.title("🚀 Nifty 50 Breakout & OI Scanner")
+# --- TELEGRAM CONFIGURATION ---
+TOKEN = "8227355571:AAFb7srp8TE5BbQ_o29Bn7tDCcpnYpYPS9I"
+CHAT_ID = "945947285"
 
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Accept-Language': 'en-US,en;q=0.9'
-}
-
-def get_nse_market_data():
-    url = "https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY"
-    session = requests.Session()
+def send_telegram_message(message):
+    """ടെലിഗ്രാമിലേക്ക് നോട്ടിഫിക്കേഷൻ അയക്കാനുള്ള ഫങ്ക്ഷൻ"""
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"}
     try:
-        session.get("https://www.nseindia.com", headers=headers, timeout=10)
-        response = session.get(url, headers=headers, timeout=10)
-        data = response.json()
-        
-        records = data['records']['data']
-        current_expiry = data['records']['expiryDates'][0]
-        
-        oi_list = []
-        total_volume = 0
-        
-        for row in records:
-            if row.get('expiryDate') == current_expiry:
-                strike = row.get('strikePrice')
-                call_oi = row.get('CE', {}).get('openInterest', 0) if row.get('CE') else 0
-                call_vol = row.get('CE', {}).get('totalTradedVolume', 0) if row.get('CE') else 0
-                put_oi = row.get('PE', {}).get('openInterest', 0) if row.get('PE') else 0
-                
+        requests.post(url, json=payload)
+    except Exception as e:
+        print(f"Telegram Error: {e}")
+
+# --- APP INTERFACE ---
+st.set_page_config(page_title="Nifty Breakout Scanner", page_icon="🚀", layout="wide")
+st.title("🚀 Nifty Breakout Scanner & Alerter")
+
+# സെഷൻ സ്റ്റേറ്റ് (മുൻപ് അയച്ച മെസ്സേജുകൾ വീണ്ടും വീണ്ടും അയക്കാതിരിക്കാൻ)
+if "last_alert" not in st.session_state:
+    st.session_state.last_alert = ""
+
+# --- TIMEFRAME SELECTION (പുതിയ ഫീച്ചർ) ---
+st.subheader("⚙️ Settings")
+timeframe = st.selectbox(
+    "Select Timeframe for Analysis:",
+    options=["15 Minutes", "30 Minutes", "1 Hour"],
+    index=0
+)
+
+st.write(f"Currently scanning in **{timeframe}** mode.")
+
+# --- DATA FETCHING & LOGIC (EXAMPLE PLACEHOLDER) ---
+# ഇവിടെയാണ് നിങ്ങളുടെ യഥാർത്ഥ NSE Live Data / OI Analysis കോഡ് വരേണ്ടത്.
+# ഉദാഹരണത്തിന് ഒരു ബ്രേക്ക്ഔട്ട് കണ്ടുപിടിക്കുന്ന ഭാഗം താഴെ നൽകുന്നു:
+
+st.divider()
+st.subheader("📊 Market Analysis Live Data")
+
+# ടെസ്റ്റിംഗിനായി ഒരു ബട്ടൺ (ഇത് ഞെക്കിയാൽ ഇപ്പോൾ തന്നെ ടെലിഗ്രാമിൽ മെസ്സേജ് വരും)
+if st.button("🧪 Test Telegram Notification"):
+    test_msg = f"🔔 *Test Alert!* \nYour Nifty Scanner is successfully connected to @IshstrdeBot! \nTimeframe: {timeframe}"
+    send_telegram_message(test_msg)
+    st.success("Test message sent to your Telegram!")
+
+# --- LIVE MARKET BREAKOUT LOGIC (തിങ്കളാഴ്ച റൺ ചെയ്യാൻ) ---
+# നിങ്ങളുടെ യഥാർത്ഥ കണ്ടീഷൻ ഇവിടെ കൊടുക്കാം. (ഉദാഹരണം:)
+breakout_detected = False 
+breakout_details = ""
+
+if breakout_detected:
+    alert_text = f"🚨 *NIFTY BREAKOUT ALERT ({timeframe})* 🚨\nPrice crossed major level! Check your broker app now."
+    
+    # ഒരേ അലേർട്ട് വീണ്ടും വീണ്ടും അയക്കാതിരിക്കാൻ
+    if st.session_state.last_alert != alert_text:
+        send_telegram_message(alert_text)
+        st.session_state.last_alert = alert_text
+        st.bell() # ഫോണിൽ ഒരു ചെറിയ ശബ്ദം വരാൻ
+
+st.info("NSE ഡാറ്റ അപ്ഡേറ്റ് ചെയ്യാൻ ശ്രമിക്കുന്നു... (തിങ്കളാഴ്ച രാവിലെ 9:15 മുതൽ ലൈവ് ഡാറ്റ ലഭ്യമാകും)")
                 total_volume += call_vol
                 oi_list.append({'strike': strike, 'call_oi': call_oi, 'put_oi': put_oi})
                 
