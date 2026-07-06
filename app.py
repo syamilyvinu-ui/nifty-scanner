@@ -18,6 +18,17 @@ def send_telegram(message):
                       json={"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"})
     except: pass
 
+def send_telegram_trade_alert(side, ltp, sl_points, index):
+    sl_price = (ltp - sl_points) if side == "BUY" else (ltp + sl_points)
+    msg = (f"🔔 *ISHA TRADE ALERT*\n"
+           f"------------------\n"
+           f"📈 Index: {index}\n"
+           f"🚀 Status: {side} Entry\n"
+           f"💰 Entry Price: {ltp}\n"
+           f"🛑 Stop Loss: {sl_price}\n"
+           f"------------------")
+    send_telegram(msg)
+
 def execute_trade(side, symbol, action):
     if st.session_state.broker_connected:
         return f"✅ **AUTO-{action}:** {side} order placed for {symbol}"
@@ -28,15 +39,19 @@ def execute_trade(side, symbol, action):
 st.set_page_config(page_title="ISHA TRADE", layout="wide")
 st.title("🚀 ISHA TRADE - Advanced Algo Bot")
 
-# Sidebar
+# Sidebar - Broker Details
 st.sidebar.header("🔑 Broker Setup")
+broker = st.sidebar.selectbox("Select Broker", ["Zerodha", "Angel One", "Fyers"])
+user_id = st.sidebar.text_input("Client ID (User ID)")
 api_key = st.sidebar.text_input("API Key", type="password")
+api_secret = st.sidebar.text_input("API Secret", type="password")
+
 if st.sidebar.button("Connect Broker"):
-    if api_key:
+    if user_id and api_key and api_secret:
         st.session_state.broker_connected = True
-        st.sidebar.success("Mode: AUTO-TRADE ACTIVE")
+        st.sidebar.success(f"Connected to {broker}!")
     else:
-        st.sidebar.error("Enter valid API Key")
+        st.sidebar.error("Please fill all Broker details!")
 
 # Power Switch
 power_switch = st.toggle("System Power Switch", value=False)
@@ -58,24 +73,22 @@ if power_switch:
     tc = (pivot - bc) + pivot
 
     if st.button("Start ISHA BOT"):
-        while power_switch:  # പവർ സ്വിച്ച് ഓൺ ആണെങ്കിൽ മാത്രം ലൂപ്പ് പ്രവർത്തിക്കും
-            # ലൈവ് ഡാറ്റ (NSE API)
+        while power_switch:
+            # ലൈവ് ഡാറ്റ (ഇവിടെ നിങ്ങളുടെ API ഡാറ്റ വരണം)
             ltp, pcr, oi = 23980.0, 1.2, 50000 
             
             # ENTRY LOGIC
             if not st.session_state.in_trade:
                 if ltp > tc and pcr > 1.1 and oi > 0:
-                    msg = execute_trade("BUY", index, "ENTRY")
                     st.session_state.in_trade = True
                     st.session_state.trade_type = "BUY"
                     st.session_state.entry_price = ltp
-                    send_telegram(f"{msg}\nPrice: {ltp}")
+                    send_telegram_trade_alert("BUY", ltp, sl_points, index)
                 elif ltp < bc and pcr < 0.9 and oi < 0:
-                    msg = execute_trade("SELL", index, "ENTRY")
                     st.session_state.in_trade = True
                     st.session_state.trade_type = "SELL"
                     st.session_state.entry_price = ltp
-                    send_telegram(f"{msg}\nPrice: {ltp}")
+                    send_telegram_trade_alert("SELL", ltp, sl_points, index)
             
             # EXIT & SL LOGIC
             else:
