@@ -20,26 +20,26 @@ index = st.selectbox("Select Index", ["NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNI
 timeframe = st.selectbox("Timeframe", ["1m", "5m", "15m"])
 sl_points = st.number_input("Stop Loss Points", value=30)
 
-# ലൂപ്പിന് തൊട്ടു മുൻപായി ഇത് ചേർക്കുക
-last_signal = None 
+# User Inputs
+index = st.selectbox("Select Index", ["NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX"])
+timeframe = st.selectbox("Timeframe", ["1m", "5m", "15m"])
+sl_points = st.number_input("Stop Loss Points", value=30)
+
+# ഇതാണ് മാറ്റേണ്ടത്: last_signal ലൂപ്പിന് പുറത്താക്കുക
+if "last_signal" not in st.session_state:
+    st.session_state.last_signal = None
 
 if st.button("Start Signal Scanner"):
     st.success(f"Scanning {index} ({timeframe})...")
-    
     while True:
-        # സിഗ്നൽ എടുക്കുന്നു
         ltp, signal = get_cpr_ma_signal(index)
         
-        # ഫിൽട്ടറിംഗ് ലോജിക്:
-        # 1. 'WAIT/NEUTRAL' ആണെങ്കിൽ മെസ്സേജ് അയക്കില്ല
-        # 2. അവസാനമായി അയച്ച സിഗ്നൽ തന്നെയാണെങ്കിൽ വീണ്ടും അയക്കില്ല
-        if signal != "WAIT/NEUTRAL" and signal != last_signal:
+        # session_state ഉപയോഗിച്ച് സിഗ്നൽ പരിശോധിക്കുന്നു
+        if signal != "WAIT/NEUTRAL" and signal != st.session_state.last_signal:
             msg = f"🔔 *SIGNAL DETECTED*\n📈 Index: {index}\n⚡ Action: {signal}\n💰 Price: {ltp}\n🛑 SL: {sl_points}"
             send_telegram(msg)
             st.write(f"Signal Sent: {signal}")
-            
-            # പുതിയ സിഗ്നൽ സ്റ്റോർ ചെയ്യുന്നു
-            last_signal = signal 
+            st.session_state.last_signal = signal 
         
-        time.sleep(60) # 1 മിനിറ്റ് ഇടവേള
+        time.sleep(60)
         st.rerun()
