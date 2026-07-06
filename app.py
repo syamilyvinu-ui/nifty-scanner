@@ -20,10 +20,6 @@ index = st.selectbox("Select Index", ["NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNI
 timeframe = st.selectbox("Timeframe", ["1m", "5m", "15m"])
 sl_points = st.number_input("Stop Loss Points", value=30)
 
-# User Inputs
-index = st.selectbox("Select Index", ["NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX"])
-timeframe = st.selectbox("Timeframe", ["1m", "5m", "15m"])
-sl_points = st.number_input("Stop Loss Points", value=30)
 
 # ഇതാണ് മാറ്റേണ്ടത്: last_signal ലൂപ്പിന് പുറത്താക്കുക
 if "last_signal" not in st.session_state:
