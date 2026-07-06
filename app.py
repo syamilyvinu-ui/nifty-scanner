@@ -21,15 +21,17 @@ sl_points = st.number_input("Stop Loss Points", value=30)
 
 if st.button("Start Signal Scanner"):
     st.success(f"Scanning {index} ({timeframe})...")
-    while True:
-        # 1. ലൈവ് പ്രൈസ് എടുക്കുന്നു
-        ticker = {"NIFTY": "^NSEI", "BANKNIFTY": "^NSEBANK", "FINNIFTY": "^CNXFIN"}.get(index, "^NSEI")
-        ltp = float(yf.Ticker(ticker).history(period="1d", interval="1m")['Close'].iloc[-1])
+    # 1. ലൈവ് പ്രൈസ് എടുക്കുന്നു
+        ltp, signal = get_cpr_ma_signal(index) # നിങ്ങളുടെ ഫങ്ഷൻ വിളിക്കുന്നു
         
-        # 2. Logic (CPR + OI + Volume) - ഇവിടെ ഡാറ്റ വിശകലനം ചെയ്യുന്നു
-        # ഉദാഹരണ ലോജിക്: വോളിയം സ്പൈക്കും പ്രൈസ് മൂവ്മെന്റും നോക്കുന്നു
-        from scanner import get_market_analysis # scanner-ൽ നിന്ന് ലോജിക് എടുക്കുന്നു
-
+        # 2. സിഗ്നൽ ഉണ്ടെങ്കിൽ മെസ്സേജ് അയക്കുന്നു
+        if signal != "WAIT (No Confluence)":
+            msg = f"🔔 *SIGNAL DETECTED*\n📈 Index: {index}\n⚡ Action: {signal}\n💰 Price: {ltp}\n🛑 SL: {sl_points}"
+            send_telegram(msg)
+            st.write(f"Signal Sent: {signal}")
+        
+        time.sleep(60) # 1 മിനിറ്റ് ഇടവേള
+        st.rerun()
 # ... loop-ന്റെ ഉള്ളിൽ ...
 signal = get_market_analysis(index) 
 
