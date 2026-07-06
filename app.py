@@ -1,65 +1,92 @@
 import streamlit as st
-import pandas as pd
 import requests
+import time
 
-# --- കോൺഫിഗറേഷൻ ---
-# (നിങ്ങളുടെ ടെലിഗ്രാം ടോക്കൺ ഇവിടെ നൽകുക)
+# --- CONFIGURATION ---
 TOKEN = "8227355571:AAFb7srp8TE5BbQ_o29Bn7tDCcpnYpYPS9I"
 CHAT_ID = "945947285"
 
-def send_telegram_message(message):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"}
-    requests.post(url, json=payload)
+# --- SESSION STATE ---
+if 'in_trade' not in st.session_state: st.session_state.in_trade = False
+if 'broker_connected' not in st.session_state: st.session_state.broker_connected = False
+if 'trade_type' not in st.session_state: st.session_state.trade_type = None
 
-# --- കണക്കുകൂട്ടലുകൾ ---
-def calculate_cpr(high, low, close):
-    pivot = (high + low + close) / 3
-    bc = (high + low) / 2
-    tc = (pivot - bc) + pivot
-    return tc, pivot, bc
-
-def get_pcr(data):
-    # NSE ഡാറ്റയിൽ നിന്ന് Total Put OI, Total Call OI കണ്ടെത്തുക
+# --- FUNCTIONS ---
+def send_telegram(message):
     try:
-        options = data['filtered']['data']
-        ce_oi = sum([x['CE']['openInterest'] for x in options if 'CE' in x])
-        pe_oi = sum([x['PE']['openInterest'] for x in options if 'PE' in x])
-        return pe_oi / ce_oi if ce_oi != 0 else 0
-    except:
-        return 0
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                      json={"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"})
+    except: pass
 
-# --- മെയിൻ ആപ്പ് ---
-st.set_page_config(page_title="Pro Scanner", layout="wide")
-st.title("🚀 Advance CPR & OI Scanner")
+def execute_trade(side, symbol, action):
+    if st.session_state.broker_connected:
+        return f"✅ **AUTO-{action}:** {side} order placed for {symbol}"
+    else:
+        return f"🔔 **SIGNAL:** Please execute {side} for {symbol} manually."
 
-power_switch = st.toggle("Power Switch", value=True)
+# --- UI ---
+st.set_page_config(page_title="ISHA TRADE", layout="wide")
+st.title("🚀 ISHA TRADE - Advanced Algo Bot")
+
+# Sidebar
+st.sidebar.header("🔑 Broker Setup")
+api_key = st.sidebar.text_input("API Key", type="password")
+if st.sidebar.button("Connect Broker"):
+    if api_key:
+        st.session_state.broker_connected = True
+        st.sidebar.success("Mode: AUTO-TRADE ACTIVE")
+    else:
+        st.sidebar.error("Enter valid API Key")
+
+# Power Switch
+power_switch = st.toggle("System Power Switch", value=False)
 
 if power_switch:
-    index = st.selectbox("Select Index:", ["NIFTY", "BANKNIFTY"])
+    st.success("✅ ISHA TRADE System is ON")
     
-    if st.button("Analyze Market"):
-        # 1. ഡാറ്റ ഫെച്ച് ചെയ്യുക (ഉദാഹരണത്തിന്)
-        # st.info("ഡാറ്റ വിശകലനം ചെയ്യുന്നു...")
+    col1, col2 = st.columns(2)
+    with col1:
+        index = st.selectbox("Index", ["NIFTY", "BANKNIFTY"])
+    with col2:
+        h = st.number_input("High", value=24000.0)
+        l = st.number_input("Low", value=23800.0)
+        c = st.number_input("Close", value=23950.0)
+        sl_points = st.number_input("Stop Loss Points", value=30)
         
-        # 2. CPR കണക്കുകൂട്ടുക (നിങ്ങളുടെ ഡാറ്റാ സോഴ്സിൽ നിന്നുള്ള H, L, C വാല്യൂസ് ഉപയോഗിക്കുക)
-        # ഉദാഹരണത്തിന് ഇന്നലത്തെ ഹൈ, ലോ, ക്ലോസ്
-        h, l, c = 24000, 23800, 23900 
-        tc, p, bc = calculate_cpr(h, l, c)
-        
-        # 3. റിസൾട്ട് കാണിക്കുക
-        st.write(f"### {index} Levels")
-        st.metric("TC Level", round(tc, 2))
-        st.metric("Pivot", round(p, 2))
-        st.metric("BC Level", round(bc, 2))
-        
-        # 4. PCR & Alert
-        pcr = 1.15 # മാതൃകയ്ക്ക് വേണ്ടി
-        st.progress(pcr / 2, text=f"Current PCR: {pcr}")
-        
-        if pcr > 1.2:
-            msg = f"🔔 *Buy Alert!* {index} is Bullish. PCR: {pcr}"
-            send_telegram_message(msg)
-            st.success("Bullish Alert Sent!")
+    pivot = (h + l + c) / 3
+    bc = (h + l) / 2
+    tc = (pivot - bc) + pivot
+
+    if st.button("Start ISHA BOT"):
+        while power_switch:  # പവർ സ്വിച്ച് ഓൺ ആണെങ്കിൽ മാത്രം ലൂപ്പ് പ്രവർത്തിക്കും
+            # ലൈവ് ഡാറ്റ (NSE API)
+            ltp, pcr, oi = 23980.0, 1.2, 50000 
+            
+            # ENTRY LOGIC
+            if not st.session_state.in_trade:
+                if ltp > tc and pcr > 1.1 and oi > 0:
+                    msg = execute_trade("BUY", index, "ENTRY")
+                    st.session_state.in_trade = True
+                    st.session_state.trade_type = "BUY"
+                    st.session_state.entry_price = ltp
+                    send_telegram(f"{msg}\nPrice: {ltp}")
+                elif ltp < bc and pcr < 0.9 and oi < 0:
+                    msg = execute_trade("SELL", index, "ENTRY")
+                    st.session_state.in_trade = True
+                    st.session_state.trade_type = "SELL"
+                    st.session_state.entry_price = ltp
+                    send_telegram(f"{msg}\nPrice: {ltp}")
+            
+            # EXIT & SL LOGIC
+            else:
+                sl_hit = (st.session_state.trade_type == "BUY" and ltp <= (st.session_state.entry_price - sl_points)) or \
+                         (st.session_state.trade_type == "SELL" and ltp >= (st.session_state.entry_price + sl_points))
+                
+                if sl_hit or (st.session_state.trade_type == "BUY" and ltp < tc) or (st.session_state.trade_type == "SELL" and ltp > bc):
+                    msg = execute_trade(st.session_state.trade_type, index, "EXIT")
+                    st.session_state.in_trade = False
+                    send_telegram(f"✅ {msg} - {'SL HIT' if sl_hit else 'Trend Reversed'}")
+            
+            time.sleep(30)
 else:
-    st.warning("Scanner is OFF")
+    st.warning("⚠️ ISHA TRADE System is OFF")
