@@ -15,27 +15,36 @@ def send_telegram(msg):
 st.set_page_config(page_title="ISHA ALGO BOT", layout="wide")
 st.title("🚀 ISHA SMART ALGO SCANNER")
 
-# User Inputs
+# --- സൈഡ്ബാർ: ബ്രോക്കർ API സെറ്റിംഗ്സ് ---
+st.sidebar.header("🔑 Broker API Settings")
+broker = st.sidebar.selectbox("Select Broker", ["None", "Zerodha", "Angel One", "Upstox"])
+api_key = st.sidebar.text_input("Enter API Key", type="password")
+api_secret = st.sidebar.text_input("Enter API Secret", type="password")
+
+# --- മെയിൻ സെറ്റിംഗ്സ് ---
 index = st.selectbox("Select Index", ["NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX"])
 timeframe = st.selectbox("Timeframe", ["1m", "5m", "15m"])
 sl_points = st.number_input("Stop Loss Points", value=30)
 
-
-# ഇതാണ് മാറ്റേണ്ടത്: last_signal ലൂപ്പിന് പുറത്താക്കുക
+# സിഗ്നൽ ട്രാക്ക് ചെയ്യാൻ session_state ഉപയോഗിക്കുന്നു
 if "last_signal" not in st.session_state:
     st.session_state.last_signal = None
 
 if st.button("Start Signal Scanner"):
     st.success(f"Scanning {index} ({timeframe})...")
+    
     while True:
+        # scanner.py-യിൽ നിന്ന് സിഗ്നൽ എടുക്കുന്നു
         ltp, signal = get_cpr_ma_signal(index)
         
-        # session_state ഉപയോഗിച്ച് സിഗ്നൽ പരിശോധിക്കുന്നു
+        # ഫിൽട്ടറിംഗ് ലോജിക്
         if signal != "WAIT/NEUTRAL" and signal != st.session_state.last_signal:
             msg = f"🔔 *SIGNAL DETECTED*\n📈 Index: {index}\n⚡ Action: {signal}\n💰 Price: {ltp}\n🛑 SL: {sl_points}"
             send_telegram(msg)
             st.write(f"Signal Sent: {signal}")
-            st.session_state.last_signal = signal 
+            
+            # പുതിയ സിഗ്നൽ സേവ് ചെയ്യുന്നു
+            st.session_state.last_signal = signal
         
-        time.sleep(60)
+        time.sleep(60) # 1 മിനിറ്റ് ഇടവേള
         st.rerun()
