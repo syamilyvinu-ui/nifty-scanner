@@ -1,13 +1,13 @@
 import yfinance as yf
 
-# ഫങ്ഷൻ പേര് ഇതാക്കി മാറ്റുക:
-def get_cpr_ma_signal(index): 
+def get_cpr_ma_signal(index):
     ticker_map = {"NIFTY": "^NSEI", "BANKNIFTY": "^NSEBANK", "FINNIFTY": "^CNXFIN"}
     ticker = ticker_map.get(index, "^NSEI")
     
+    # Volume കൂടി ഉൾപ്പെടുത്തി ഡാറ്റ എടുക്കുന്നു
     data = yf.Ticker(ticker).history(period="5d", interval="5m")
     
-    # CPR കണക്കുകൂട്ടൽ
+    # CPR & MA കണക്കുകൂട്ടൽ
     high = data['High'].iloc[-2]
     low = data['Low'].iloc[-2]
     close = data['Close'].iloc[-2]
@@ -15,17 +15,21 @@ def get_cpr_ma_signal(index):
     bc = (high + low) / 2
     tc = (pivot - bc) + pivot
     
-    # MA 14 & 21 കണക്കുകൂട്ടൽ
     ma_14 = data['Close'].rolling(window=14).mean().iloc[-1]
     ma_21 = data['Close'].rolling(window=21).mean().iloc[-1]
     
-    # ലൈവ് പ്രൈസ്
+    # വോളിയം ചെക്കിംഗ് (കഴിഞ്ഞ 10 കാൻഡിലുകളുടെ ശരാശരി വോളിയത്തേക്കാൾ കൂടുതലാണോ?)
+    avg_volume = data['Volume'].rolling(window=10).mean().iloc[-1]
+    current_volume = data['Volume'].iloc[-1]
+    
     ltp = float(data['Close'].iloc[-1])
     
-    # ലോജിക്
-    if ltp > tc and ma_14 > ma_21:
-        return ltp, "BUY (STRONG)" # ഇവിടെ ltp കൂടി റിട്ടേൺ ചെയ്യണം
-    elif ltp < bc and ma_14 < ma_21:
-        return ltp, "SELL (STRONG)"
+    # വോളിയം സ്പൈക്ക് ഉണ്ടോ എന്ന് നോക്കുന്നു
+    volume_ok = current_volume > avg_volume
+
+    if ltp > tc and ma_14 > ma_21 and volume_ok:
+        return ltp, "BUY (STRONG + VOLUME)"
+    elif ltp < bc and ma_14 < ma_21 and volume_ok:
+        return ltp, "SELL (STRONG + VOLUME)"
     else:
         return ltp, "WAIT/NEUTRAL"
