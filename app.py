@@ -28,11 +28,15 @@ if st.button("Start Signal Scanner"):
         
         # 2. Logic (CPR + OI + Volume) - ഇവിടെ ഡാറ്റ വിശകലനം ചെയ്യുന്നു
         # ഉദാഹരണ ലോജിക്: വോളിയം സ്പൈക്കും പ്രൈസ് മൂവ്മെന്റും നോക്കുന്നു
-        signal = None
-        if ltp > 0: # ഇവിടെയാണ് നിങ്ങളുടെ കണ്ടീഷനുകൾ വരിക
-            # സിഗ്നൽ കണ്ടെത്തിയാൽ
-            signal = "BUY (CALL)" if ltp % 2 == 0 else "SELL (PUT)" 
-            
+        from scanner import get_market_analysis # scanner-ൽ നിന്ന് ലോജിക് എടുക്കുന്നു
+
+# ... loop-ന്റെ ഉള്ളിൽ ...
+signal = get_market_analysis(index) 
+
+if signal != "WAIT/NEUTRAL": 
+    # ടെലിഗ്രാം അലേർട്ട് അയക്കുന്നു
+    msg = f"🔔 *SIGNAL DETECTED*\n📈 Index: {index}\n⚡ Action: {signal}\n💰 Price: {ltp}"
+    send_telegram(msg)
             # ടെലിഗ്രാം അലേർട്ട്
             msg = f"🔔 *SIGNAL DETECTED*\n📈 Index: {index}\n⚡ Action: {signal}\n💰 Price: {ltp}\n🛑 SL: {sl_points}"
             send_telegram(msg)
