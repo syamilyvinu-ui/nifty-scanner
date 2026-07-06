@@ -2,6 +2,7 @@ import streamlit as st
 import yfinance as yf
 import requests
 import time
+from scanner import get_cpr_ma_signal
 
 # --- CONFIGURATION ---
 TOKEN = "8227355571:AAFb7srp8TE5BbQ_o29Bn7tDCcpnYpYPS9I"
@@ -20,26 +21,12 @@ timeframe = st.selectbox("Timeframe", ["1m", "5m", "15m"])
 sl_points = st.number_input("Stop Loss Points", value=30)
 
 if st.button("Start Signal Scanner"):
-        st.success(f"Scanning {index} ({timeframe})...")
-        while True:
-            # താഴെ പറയുന്ന വരികൾ while True-ന് താഴെ കൃത്യം 4-8 സ്പേസ് ഉള്ളിലായിരിക്കണം
-            ltp, signal = get_cpr_ma_signal(index) 
-            
-            if signal != "WAIT (No Confluence)":
-                msg = f"🔔 *SIGNAL DETECTED*\n📈 Index: {index}\n⚡ Action: {signal}\n💰 Price: {ltp}\n🛑 SL: {sl_points}"
-                send_telegram(msg)
-                st.write(f"Signal Sent: {signal}")
-            
-            time.sleep(60)
-            st.rerun()
-# ... loop-ന്റെ ഉള്ളിൽ ...
-signal = get_market_analysis(index) 
-
-if signal != "WAIT/NEUTRAL": 
-    # ടെലിഗ്രാം അലേർട്ട് അയക്കുന്നു
-    msg = f"🔔 *SIGNAL DETECTED*\n📈 Index: {index}\n⚡ Action: {signal}\n💰 Price: {ltp}"
-    send_telegram(msg)
-            # ടെലിഗ്രാം അലേർട്ട്
+    st.success(f"Scanning {index} ({timeframe})...")
+    while True:
+        # CPR+MA ലോജിക് ഉപയോഗിക്കുന്നു
+        ltp, signal = get_cpr_ma_signal(index)
+        
+        if signal != "WAIT (No Confluence)":
             msg = f"🔔 *SIGNAL DETECTED*\n📈 Index: {index}\n⚡ Action: {signal}\n💰 Price: {ltp}\n🛑 SL: {sl_points}"
             send_telegram(msg)
             st.write(f"Signal Sent: {signal}")
