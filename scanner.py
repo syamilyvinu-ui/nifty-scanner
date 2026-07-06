@@ -1,11 +1,10 @@
 import yfinance as yf
 
-def get_market_analysis(index):
-    # ഇൻഡക്സിന് അനുസരിച്ചുള്ള ticker
+# ഫങ്ഷൻ പേര് ഇതാക്കി മാറ്റുക:
+def get_cpr_ma_signal(index): 
     ticker_map = {"NIFTY": "^NSEI", "BANKNIFTY": "^NSEBANK", "FINNIFTY": "^CNXFIN"}
     ticker = ticker_map.get(index, "^NSEI")
     
-    # 5 മിനിറ്റ് ഇന്റർവെലിൽ ഡാറ്റ എടുക്കുന്നു
     data = yf.Ticker(ticker).history(period="5d", interval="5m")
     
     # CPR കണക്കുകൂട്ടൽ
@@ -23,10 +22,10 @@ def get_market_analysis(index):
     # ലൈവ് പ്രൈസ്
     ltp = float(data['Close'].iloc[-1])
     
-    # ലോജിക്: CPR + MA Crossing
+    # ലോജിക്
     if ltp > tc and ma_14 > ma_21:
-        return "BUY (STRONG)"
+        return ltp, "BUY (STRONG)" # ഇവിടെ ltp കൂടി റിട്ടേൺ ചെയ്യണം
     elif ltp < bc and ma_14 < ma_21:
-        return "SELL (STRONG)"
+        return ltp, "SELL (STRONG)"
     else:
-        return "WAIT/NEUTRAL"
+        return ltp, "WAIT/NEUTRAL"
