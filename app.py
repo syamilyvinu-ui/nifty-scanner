@@ -22,38 +22,45 @@ st.title("🚀 Nifty Breakout Scanner & Alerter")
 if "last_alert" not in st.session_state:
     st.session_state.last_alert = ""
 
-# --- SIDEBAR: BROKER API CONFIGURATION (പുതിയ ഫീച്ചർ) ---
+# --- SIDEBAR: BROKER API CONFIGURATION ---
 st.sidebar.header("🔑 Broker API Settings")
 broker = st.sidebar.selectbox(
     "Select Your Broker:",
     options=["Zerodha (Kite)", "Angel One", "Fyers", "Alice Blue"]
 )
 
-api_key = st.sidebar.text_input("Enter API Key:", type="password", help="ನಿಮ್ಮ ဘ್ರೋക്കർ പോർട്ടലിൽ നിന്നുള്ള API Key ഇവിടെ നൽകുക")
+api_key = st.sidebar.text_input("Enter API Key:", type="password", help="നിങ്ങളുടെ ബ്രോക്കർ പോർട്ടലിൽ നിന്നുള്ള API Key ഇവിടെ നൽകുക")
 secret_key = st.sidebar.text_input("Enter Secret Key / Access Token:", type="password")
 
 if st.sidebar.button("🔗 Connect Broker"):
     if api_key and secret_key:
         st.sidebar.success(f"Connected successfully to {broker}!")
-        # തിങ്കളാഴ്ച യഥാർത്ഥ അക്കൗണ്ടിലേക്ക് കണക്ട് ചെയ്യാനുള്ള കോഡ് ഇവിടെ വരും
     else:
         st.sidebar.error("Please enter both API Key and Secret Key!")
 
-# --- MAIN SCREEN: TIMEFRAME SELECTION ---
+# --- MAIN SCREEN: TIMEFRAME & INDEX SELECTION ---
 st.subheader("⚙️ Settings")
+
+# പുതിയ മാറ്റം: ഇൻഡെക്സ് തിരഞ്ഞെടുക്കാനുള്ള സെലക്ട് ബോക്സ്
+index_selection = st.selectbox(
+    "Select Index:",
+    options=["NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY"],
+    index=0
+)
+
 timeframe = st.selectbox(
     "Select Timeframe for Analysis:",
     options=["15 Minutes", "30 Minutes", "1 Hour"],
     index=0
 )
 
-st.write(f"Currently scanning in **{timeframe}** mode.")
+st.write(f"Currently scanning **{index_selection}** in **{timeframe}** mode.")
 st.divider()
 
 # --- TEST BUTTON ---
 st.subheader("📊 Market Analysis Live Data")
 if st.button("🧪 Test Telegram Notification"):
-    test_msg = f"🔔 *Test Alert!* \nYour Nifty Scanner is successfully connected to @IshstrdeBot! \nTimeframe: {timeframe}\nBroker Mode: {broker}"
+    test_msg = f"🔔 *Test Alert!* \nYour Scanner is successfully connected to @IshstrdeBot! \nIndex: {index_selection}\nTimeframe: {timeframe}\nBroker: {broker}"
     send_telegram_message(test_msg)
     st.success("Test message sent to your Telegram!")
 
@@ -64,14 +71,16 @@ headers = {
     'Accept-Language': 'en-US,en;q=0.9'
 }
 
-def get_nse_market_data():
-    url = "https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY"
+def get_nse_market_data(symbol):
+    """തിരഞ്ഞെടുത്ത ഇൻഡെക്സ് അനുസരിച്ച് ഡാറ്റ ഫെച്ച് ചെയ്യുന്ന ഫങ്ക്ഷൻ"""
+    url = f"https://www.nseindia.com/api/option-chain-indices?symbol={symbol}"
     session = requests.Session()
     try:
         session.get("https://www.nseindia.com", headers=headers, timeout=10)
         response = session.get(url, headers=headers, timeout=10)
         return response.json()
     except Exception as e:
+        st.error(f"Error fetching data: {e}")
         return None
 
-st.info("NSE ഡാറ്റ അപ്ഡേറ്റ് ചെയ്യാൻ ശ്രമിക്കുന്നു... (തിങ്കളാഴ്ച രാവിലെ 9:15 മുതൽ ലൈവ് ഡാറ്റ ലഭ്യമാകും)")
+st.info(f"{index_selection} ഡാറ്റ അപ്ഡേറ്റ് ചെയ്യാൻ ശ്രമിക്കുന്നു...")
