@@ -25,9 +25,7 @@ target_points = st.number_input("Target Points", value=40)
 
 if st.button("Start Signal Scanner"):
     while True:
-          
-      
-            ltp, signal = get_ma_crossover_signal(index) # <-- പുതിയത്
+          ltp, signal = get_ma_crossover_signal(index) # <-- പുതിയത്
 
         
         # 1. നിലവിൽ ട്രേഡ് ഇല്ലെങ്കിൽ പുതിയ എൻട്രി നോക്കുന്നു
