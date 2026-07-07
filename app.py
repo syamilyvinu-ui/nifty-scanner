@@ -25,7 +25,10 @@ target_points = st.number_input("Target Points", value=40)
 
 if st.button("Start Signal Scanner"):
     while True:
-        ltp, signal = get_cpr_ma_signal(index)
+           # app.py-ൽ ഈ വരി മാറ്റുക:
+           # ltp, signal = get_cpr_ma_signal(index)  <-- പഴയത്
+             ltp, signal = get_ma_crossover_signal(index) # <-- പുതിയത്
+
         
         # 1. നിലവിൽ ട്രേഡ് ഇല്ലെങ്കിൽ പുതിയ എൻട്രി നോക്കുന്നു
         if st.session_state.active_trade is None:
