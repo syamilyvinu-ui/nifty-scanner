@@ -1,35 +1,23 @@
-import yfinance as yf
+def get_reversal_signal(df):
+    last = df.iloc[-1]
+    # Hammer Logic (Body < 1/3 of range, Shadow > 2/3)
+    is_hammer = (last['Close'] > last['Open']) and ((last['Close'] - last['Open']) < (last['High'] - last['Low']) / 3)
+    
+    # Shooting Star Logic
+    is_shooting_star = (last['Close'] < last['Open']) and ((last['Open'] - last['Close']) < (last['High'] - last['Low']) / 3)
+    
+    return is_hammer, is_shooting_star
 
-def get_cpr_ma_signal(index):
-    ticker_map = {"NIFTY": "^NSEI", "BANKNIFTY": "^NSEBANK", "FINNIFTY": "^CNXFIN"}
-    ticker = ticker_map.get(index, "^NSEI")
+# സിഗ്നൽ ചെക്കർ ഇങ്ങനെ മാറ്റി എഴുതാം:
+def get_final_signal(index):
+    # ... (ഡാറ്റ ഡൗൺലോഡ് ചെയ്യുക)
+    is_hammer, is_shooting_star = get_reversal_signal(df)
     
-    # Volume കൂടി ഉൾപ്പെടുത്തി ഡാറ്റ എടുക്കുന്നു
-    data = yf.Ticker(ticker).history(period="5d", interval="5m")
+    # EMA Crossover + Volume + Candlestick Reversal
+    if last['EMA14'] > last['EMA21'] and vol_confirm and is_hammer:
+        return last['Close'], "STRONG BUY"
     
-    # CPR & MA കണക്കുകൂട്ടൽ
-    high = data['High'].iloc[-2]
-    low = data['Low'].iloc[-2]
-    close = data['Close'].iloc[-2]
-    pivot = (high + low + close) / 3
-    bc = (high + low) / 2
-    tc = (pivot - bc) + pivot
+    elif last['EMA14'] < last['EMA21'] and vol_confirm and is_shooting_star:
+        return last['Close'], "STRONG SELL"
     
-    ma_14 = data['Close'].rolling(window=14).mean().iloc[-1]
-    ma_21 = data['Close'].rolling(window=21).mean().iloc[-1]
-    
-    # വോളിയം ചെക്കിംഗ് (കഴിഞ്ഞ 10 കാൻഡിലുകളുടെ ശരാശരി വോളിയത്തേക്കാൾ കൂടുതലാണോ?)
-    avg_volume = data['Volume'].rolling(window=10).mean().iloc[-1]
-    current_volume = data['Volume'].iloc[-1]
-    
-    ltp = float(data['Close'].iloc[-1])
-    
-    # വോളിയം സ്പൈക്ക് ഉണ്ടോ എന്ന് നോക്കുന്നു
-    volume_ok = current_volume > avg_volume
-
-    if ltp > tc and ma_14 > ma_21 and volume_ok:
-        return ltp, "BUY (STRONG + VOLUME)"
-    elif ltp < bc and ma_14 < ma_21 and volume_ok:
-        return ltp, "SELL (STRONG + VOLUME)"
-    else:
-        return ltp, "WAIT/NEUTRAL"
+    return last['Close'], "HOLD"
