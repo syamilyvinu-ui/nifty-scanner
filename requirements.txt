@@ -1,5 +1,9 @@
 streamlit
 pandas
+numpy
 requests
-streamlit
 yfinance
+ta
+plotly
+streamlit-autorefresh
+nsepython
